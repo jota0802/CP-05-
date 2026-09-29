@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- O script entregue na pasta database/ é o mesmo que a aplicação executa ao iniciar. -->
     <None Include="../../database/criar-tabela-produto.sql" Link="database/criar-tabela-produto.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
