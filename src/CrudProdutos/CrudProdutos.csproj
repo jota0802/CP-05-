@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!--
+      net8.0 é a versão LTS. RollForward=LatestMajor deixa o mesmo projeto
+      rodar numa máquina que só tenha o .NET 9 ou o .NET 10 instalado.
+    -->
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Provedor ADO.NET do SQLite (SqliteConnection, SqliteCommand, SqliteDataReader). -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.31" />
+    <!-- Leitura da connection string do appsettings.json. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- O script entregue na pasta database/ é o mesmo que a aplicação executa ao iniciar. -->
+    <None Include="../../database/criar-tabela-produto.sql" Link="database/criar-tabela-produto.sql" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

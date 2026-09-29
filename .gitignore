@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+*.user
+TestResults/
+
+# Gerados ao executar a aplicação
+*.db
+*.db-journal
+logs/
