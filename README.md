@@ -31,9 +31,11 @@ atualizar e excluir) usando **ADO.NET puro**, sem ORM, com banco **SQLite**.
 
 ## Como configurar e executar
 
-### Pré-requisito
+### Pré-requisitos
 
 - [.NET SDK 8](https://dotnet.microsoft.com/download) ou mais novo (confira com `dotnet --version`).
+- Git, para clonar. Sem Git, dá para baixar o ZIP pelo botão **Code** do GitHub.
+- Para abrir pelo Visual Studio: Visual Studio 2022 versão 17.8 ou mais nova.
 
 Não é preciso instalar banco de dados: o SQLite vem no pacote NuGet e o arquivo `produtos.db`
 é criado na primeira execução.
@@ -41,14 +43,18 @@ Não é preciso instalar banco de dados: o SQLite vem no pacote NuGet e o arquiv
 ### Pelo terminal
 
 ```bash
-git clone https://github.com/jota0802/fiap-csharp-cp5-crud-adonet.git
-cd fiap-csharp-cp5-crud-adonet
+git clone https://github.com/jota0802/CP-05-.git
+cd CP-05-
 dotnet run --project src/CrudProdutos
 ```
+
+O `produtos.db` e a pasta `logs/` são criados na pasta de onde o comando é executado (aqui, a
+raiz do repositório).
 
 ### Pelo Visual Studio
 
 Abra o `CrudProdutos.sln`, defina `CrudProdutos` como projeto de inicialização e pressione F5.
+Nesse caso o `produtos.db` e o `logs/operacoes.log` ficam em `src/CrudProdutos/bin/Debug/net8.0/`.
 
 ### Banco de dados
 
@@ -68,19 +74,20 @@ A connection string fica em [`src/CrudProdutos/appsettings.json`](src/CrudProdut
 - Ao iniciar, a aplicação executa o script [`database/criar-tabela-produto.sql`](database/criar-tabela-produto.sql).
   Como ele usa `CREATE TABLE IF NOT EXISTS`, a tabela é criada na primeira vez e os dados são
   mantidos nas execuções seguintes.
-- O `produtos.db` e a pasta `logs/` são criados na pasta de onde a aplicação é executada
-  (na raiz do repositório, usando o comando acima).
-- Para criar o banco manualmente, sem a aplicação: `sqlite3 produtos.db < database/criar-tabela-produto.sql`.
+- Para usar outro arquivo de banco, troque o `Data Source` da `DefaultConnection`.
+- Criar o banco manualmente é opcional e exige o [sqlite3](https://sqlite.org/download.html) de linha de comando.
+  Este comando funciona no bash, no cmd e no PowerShell:
+  `sqlite3 produtos.db ".read database/criar-tabela-produto.sql"`
 
 Tabela `Produto`:
 
-| Coluna    | Tipo          | Regra                          |
-|-----------|---------------|--------------------------------|
-| Id        | INTEGER       | chave primária, autoincremento |
-| Nome      | TEXT          | obrigatório                    |
+| Coluna    | Tipo          | Regra                           |
+|-----------|---------------|---------------------------------|
+| Id        | INTEGER       | chave primária, autoincremento  |
+| Nome      | TEXT          | obrigatório                     |
 | Preco     | DECIMAL(10,2) | obrigatório, maior ou igual a 0 |
 | Estoque   | INTEGER       | obrigatório, maior ou igual a 0 |
-| Categoria | TEXT          | obrigatório                    |
+| Categoria | TEXT          | obrigatório                     |
 
 ### Testes
 
@@ -89,8 +96,9 @@ dotnet test
 ```
 
 São 9 testes do `ProdutoRepository`. Cada um cria um banco SQLite temporário com o mesmo script
-`.sql` da aplicação e cobre inserir, listar, buscar, atualizar, excluir, o caso de ID inexistente,
-um texto com SQL injection gravado como dado comum e a regra `CHECK` do banco rejeitando preço negativo.
+`.sql` da aplicação. Juntos, eles cobrem inserir, listar, buscar, atualizar, excluir, o caso de ID
+inexistente, um texto com SQL injection gravado como dado comum e a regra `CHECK` do banco
+rejeitando preço negativo.
 
 ## Menu
 
@@ -103,8 +111,12 @@ um texto com SQL injection gravado como dado comum e a regra `CHECK` do banco re
 0 - Sair
 ```
 
-No **Atualizar**, apertar Enter mantém o valor atual do campo. O **Excluir** mostra o produto e
-pede confirmação. O preço aceita vírgula ou ponto (`19,90` ou `19.90`).
+- No **Atualizar**, apertar Enter mantém o valor atual do campo.
+- O **Excluir** mostra o produto e pede confirmação.
+- O preço aceita vírgula ou ponto nos centavos (`19,90` ou `19.90`) e ponto de milhar junto com a
+  vírgula (`1.500,00`). Um valor ambíguo como `1.500` é recusado, para não virar R$ 1,50.
+- Entrada inválida (campo vazio, texto no lugar de número, valor negativo) mostra uma mensagem e
+  pede o valor de novo.
 
 ## Requisitos técnicos: onde cada um está
 
@@ -119,28 +131,75 @@ pede confirmação. O preço aceita vírgula ou ponto (`19,90` ou `19.90`).
 | `ExecuteNonQuery` no INSERT, UPDATE e DELETE | `Inserir`, `Atualizar` e `Excluir` |
 | `ExecuteReader` nos SELECT | `Listar`, `BuscarPorId` e a leitura do ID gerado no `Inserir` |
 | Mapeamento manual do DataReader para `Produto` | método `Mapear` do `ProdutoRepository` |
-| SQL parametrizado | todos os comandos usam parâmetros (`@Id`, `@Nome`, `@Preco`, `@Estoque`, `@Categoria`) |
-| Tratamento de exceções do banco | `MenuConsole.ExecutarOperacao` e `Program.cs` capturam `DbException` |
+| SQL parametrizado | todo comando que recebe valor usa parâmetros (`@Id`, `@Nome`, `@Preco`, `@Estoque`, `@Categoria`); o `Listar` e o `SELECT last_insert_rowid()` não recebem valor |
+| Tratamento de exceções do banco | `MenuConsole.ExecutarOperacao` captura `DbException`, mostra a mensagem, registra no log e volta ao menu; o `Program.cs` trata as falhas ao ler a configuração e ao preparar o banco |
 | Registro das operações em arquivo | [`Infra/LogDeOperacoes.cs`](src/CrudProdutos/Infra/LogDeOperacoes.cs), gravando em `logs/operacoes.log` |
 | Separação entre interface e Repository | [`UI/MenuConsole.cs`](src/CrudProdutos/UI/MenuConsole.cs) não tem SQL; o `ProdutoRepository` não usa o console |
 
 ## Log de operações
 
-Cada operação vira uma linha em `logs/operacoes.log`:
+Cada operação vira uma linha em `logs/operacoes.log`. Este é o log da sessão dos prints abaixo:
 
 ```
-2026-09-29 19:30:59 | INICIO    | Aplicação iniciada.
-2026-09-29 19:30:59 | INSERIR   | Id=1; Nome=Teclado mecânico; Preco=349.90; Estoque=10; Categoria=Periféricos
-2026-09-29 19:30:59 | LISTAR    | 3 produto(s) retornado(s).
-2026-09-29 19:30:59 | BUSCAR    | Id=2 encontrado.
-2026-09-29 19:30:59 | ATUALIZAR | Id=1; Nome=Teclado mecânico; Preco=299.90; Estoque=10; Categoria=Periféricos
-2026-09-29 19:30:59 | EXCLUIR   | Id=3; Nome=Monitor 24"; Preco=1099.00; Estoque=5; Categoria=Monitores
-2026-09-29 19:30:59 | BUSCAR    | Id=99 não encontrado.
-2026-09-29 19:30:59 | FIM       | Aplicação encerrada.
+2026-09-29 20:04:39 | INICIO    | Aplicação iniciada.
+2026-09-29 20:04:40 | INSERIR   | Id=1; Nome=Teclado mecânico; Preco=349.90; Estoque=10; Categoria=Periféricos
+2026-09-29 20:04:41 | INSERIR   | Id=2; Nome=Mouse sem fio; Preco=129.90; Estoque=25; Categoria=Periféricos
+2026-09-29 20:04:43 | INSERIR   | Id=3; Nome=Monitor 24 polegadas; Preco=1099.00; Estoque=5; Categoria=Monitores
+2026-09-29 20:04:44 | INSERIR   | Id=4; Nome=Headset USB; Preco=259.00; Estoque=8; Categoria=Áudio
+2026-09-29 20:04:44 | LISTAR    | 4 produto(s) retornado(s).
+2026-09-29 20:04:45 | BUSCAR    | Id=2 encontrado.
+2026-09-29 20:04:46 | ATUALIZAR | Id=1; Nome=Teclado mecânico; Preco=299.90; Estoque=12; Categoria=Periféricos
+2026-09-29 20:04:47 | EXCLUIR   | Id=3; Nome=Monitor 24 polegadas; Preco=1099.00; Estoque=5; Categoria=Monitores
+2026-09-29 20:04:47 | LISTAR    | 3 produto(s) retornado(s).
+2026-09-29 20:04:49 | BUSCAR    | Id=99 não encontrado.
+2026-09-29 20:04:51 | INSERIR   | Id=5; Nome=Cadeira gamer; Preco=1500.00; Estoque=3; Categoria=Cadeiras
+2026-09-29 20:04:51 | FIM       | Aplicação encerrada.
+2026-09-29 20:04:52 | INICIO    | Aplicação iniciada.
+2026-09-29 20:04:53 | ERRO      | Falha ao inserir o produto: SQLite Error 8: 'attempt to write a readonly database'.
+2026-09-29 20:04:53 | FIM       | Aplicação encerrada.
 ```
-
-Erros de banco também são registrados, com a linha `ERRO` e a mensagem da exceção.
 
 ## Prints
 
-<!-- PRINTS -->
+### Inserir produto
+
+![Inserir produto](docs/prints/01-inserir.png)
+
+### Listar produtos
+
+![Listar produtos](docs/prints/02-listar.png)
+
+### Buscar produto por ID
+
+![Buscar produto por ID](docs/prints/03-buscar.png)
+
+### Atualizar produto
+
+![Atualizar produto](docs/prints/04-atualizar.png)
+
+### Excluir produto
+
+![Excluir produto](docs/prints/05-excluir.png)
+
+### Listagem depois de atualizar e excluir
+
+![Listagem depois das alterações](docs/prints/06-listar-depois-das-alteracoes.png)
+
+### Tratamento de erros
+
+ID inválido e ID que não existe:
+
+![ID inválido e inexistente](docs/prints/07-id-invalido-e-inexistente.png)
+
+Validação da entrada ao inserir:
+
+![Validação ao inserir](docs/prints/08-validacao-ao-inserir.png)
+
+Erro do banco de dados (arquivo `produtos.db` somente leitura): a exceção é tratada, registrada no
+log e o menu continua funcionando.
+
+![Erro de banco de dados](docs/prints/09-erro-de-banco.png)
+
+### Log de operações
+
+![Log de operações](docs/prints/10-log-de-operacoes.png)

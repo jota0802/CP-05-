@@ -4,8 +4,8 @@
 -- torna a execução repetível: na primeira vez cria a tabela, nas seguintes
 -- não faz nada e os dados continuam lá.
 --
--- Para criar o banco manualmente, sem a aplicação:
---   sqlite3 produtos.db < database/criar-tabela-produto.sql
+-- Para criar o banco manualmente, sem a aplicação (bash, cmd ou PowerShell):
+--   sqlite3 produtos.db ".read database/criar-tabela-produto.sql"
 
 CREATE TABLE IF NOT EXISTS Produto (
     Id        INTEGER       PRIMARY KEY AUTOINCREMENT,
