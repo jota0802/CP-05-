@@ -3,6 +3,13 @@
 Aplicação de console em C# que faz o cadastro de produtos (inserir, listar, buscar por ID,
 atualizar e excluir) usando **ADO.NET puro**, sem ORM, com banco **SQLite**.
 
+## Integrantes
+
+| Nome                    | RM     |
+|-------------------------|--------|
+| João Victor Franco      | 556790 |
+| Bruna da Costa Candeias | 558938 |
+
 ## Tecnologias
 
 - .NET 8 (C#)
