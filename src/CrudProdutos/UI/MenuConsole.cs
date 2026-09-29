@@ -305,19 +305,21 @@ public class MenuConsole
                 return atual.Value;
             }
 
+            // Scale conta as casas digitadas: "1.500" (1,500) tem 3 e é recusado em vez de virar R$ 1,50.
             if (TentarLerDecimal(texto, out var preco)
                 && preco >= 0 && preco <= PrecoMaximo
-                && decimal.Round(preco, 2) == preco)
+                && preco.Scale <= 2)
             {
                 return preco;
             }
-            Console.WriteLine("  Preço inválido. Use um valor de 0 a 99.999.999,99 com até 2 casas decimais.");
+            Console.WriteLine("  Preço inválido. Use até 2 casas decimais, ex.: 19,90 ou 1.500,00 (máximo 99.999.999,99).");
         }
     }
 
     private static bool TentarLerDecimal(string texto, out decimal valor)
     {
-        // Com vírgula: formato brasileiro (1.234,56). Sem vírgula: o ponto é o separador decimal (19.90).
+        // Com vírgula: formato brasileiro (1.234,56). Sem vírgula: o ponto é o separador decimal (19.90),
+        // e um ponto seguido de 3 dígitos ("1.500") fica com 3 casas e é recusado pelo LerPreco.
         var cultura = texto.Contains(',') ? PtBr : CultureInfo.InvariantCulture;
         return decimal.TryParse(texto, NumberStyles.Number, cultura, out valor);
     }
