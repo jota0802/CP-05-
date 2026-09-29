@@ -111,13 +111,14 @@ public class MenuConsole
             return;
         }
 
-        Console.WriteLine($"{"ID",-4} {"Nome",-26} {"Preço",14} {"Estoque",8}  Categoria");
-        Console.WriteLine(new string('-', 72));
+        // Larguras: o maior preço aceito (R$ 99.999.999,99) tem 16 caracteres e o maior estoque, 10.
+        Console.WriteLine($"{"ID",-4} {"Nome",-26} {"Preço",16} {"Estoque",10}  Categoria");
+        Console.WriteLine(new string('-', 76));
         foreach (var p in produtos)
         {
-            Console.WriteLine($"{p.Id,-4} {Cortar(p.Nome, 26),-26} {FormatarPreco(p.Preco),14} {p.Estoque,8}  {p.Categoria}");
+            Console.WriteLine($"{p.Id,-4} {Cortar(p.Nome, 26),-26} {FormatarPreco(p.Preco),16} {p.Estoque,10}  {p.Categoria}");
         }
-        Console.WriteLine(new string('-', 72));
+        Console.WriteLine(new string('-', 76));
         Console.WriteLine($"Total: {produtos.Count} produto(s).");
     }
 
@@ -152,6 +153,7 @@ public class MenuConsole
         }
 
         MostrarDetalhes(produto);
+        Console.WriteLine();
         Console.WriteLine("Digite os novos valores (Enter mantém o valor atual).");
         produto.Nome = LerTextoOpcional("Nome", produto.Nome);
         produto.Preco = LerPreco("Preço", produto.Preco);
@@ -183,6 +185,7 @@ public class MenuConsole
         }
 
         MostrarDetalhes(produto);
+        Console.WriteLine();
         if (!Confirmar($"Confirma a exclusão do produto {id}? (s/n): "))
         {
             _log.Registrar("EXCLUIR", $"Id={id} exclusão cancelada pelo usuário.");
@@ -232,7 +235,6 @@ public class MenuConsole
         Console.WriteLine($"Preço:     {FormatarPreco(p.Preco)}");
         Console.WriteLine($"Estoque:   {p.Estoque}");
         Console.WriteLine($"Categoria: {p.Categoria}");
-        Console.WriteLine();
     }
 
     private void InformarNaoEncontrado(string operacao, int id)
@@ -386,7 +388,17 @@ public class MenuConsole
 
     private static string Cortar(string texto, int tamanhoMaximo)
     {
-        return texto.Length <= tamanhoMaximo ? texto : texto[..(tamanhoMaximo - 3)] + "...";
+        if (texto.Length <= tamanhoMaximo)
+        {
+            return texto;
+        }
+
+        var corte = tamanhoMaximo - 3;
+        if (char.IsHighSurrogate(texto[corte - 1]))
+        {
+            corte--; // não parte um emoji (par surrogate) ao meio
+        }
+        return texto[..corte] + "...";
     }
 
     private static string Descrever(Produto p)
