@@ -13,15 +13,13 @@ public class LogDeOperacoes
         _caminhoDoArquivo = caminhoDoArquivo;
     }
 
-    public string CaminhoCompleto => Path.GetFullPath(_caminhoDoArquivo);
-
     public void Registrar(string operacao, string detalhes)
     {
         var linha = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {operacao,-9} | {detalhes}{Environment.NewLine}";
 
         try
         {
-            var pasta = Path.GetDirectoryName(CaminhoCompleto);
+            var pasta = Path.GetDirectoryName(Path.GetFullPath(_caminhoDoArquivo));
             if (!string.IsNullOrEmpty(pasta))
             {
                 Directory.CreateDirectory(pasta);
@@ -29,10 +27,10 @@ public class LogDeOperacoes
 
             File.AppendAllText(_caminhoDoArquivo, linha);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex)
         {
             // Falha no log não pode derrubar o cadastro: avisa e segue.
-            Console.Error.WriteLine($"Aviso: não foi possível gravar o log em {CaminhoCompleto} ({ex.Message}).");
+            Console.Error.WriteLine($"Aviso: não foi possível gravar o log em '{_caminhoDoArquivo}' ({ex.Message}).");
         }
     }
 }

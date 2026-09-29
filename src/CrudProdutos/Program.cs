@@ -1,4 +1,3 @@
-using System.Data.Common;
 using System.Text;
 using CrudProdutos.Data;
 using CrudProdutos.Infra;
@@ -17,11 +16,16 @@ try
         .AddJsonFile("appsettings.json", optional: false)
         .Build();
 
-    connectionString = configuracao.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection não encontrada.");
-    arquivoDeLog = configuracao["Log:Arquivo"] ?? "logs/operacoes.log";
+    connectionString = configuracao.GetConnectionString("DefaultConnection") ?? "";
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException("ConnectionStrings:DefaultConnection não foi informada.");
+    }
+
+    var caminhoDoLog = configuracao["Log:Arquivo"];
+    arquivoDeLog = string.IsNullOrWhiteSpace(caminhoDoLog) ? "logs/operacoes.log" : caminhoDoLog;
 }
-catch (Exception ex) when (ex is IOException or InvalidDataException or FormatException or InvalidOperationException)
+catch (Exception ex)
 {
     Console.WriteLine($"Erro ao ler o appsettings.json: {ex.Message}");
     return 1;
@@ -35,7 +39,7 @@ try
     var script = Path.Combine(AppContext.BaseDirectory, "database", "criar-tabela-produto.sql");
     BancoDeDados.CriarTabela(connectionString, script);
 }
-catch (Exception ex) when (ex is DbException or IOException or ArgumentException)
+catch (Exception ex) // DbException do SQLite, script ausente, connection string inválida...
 {
     log.Registrar("ERRO", $"Falha ao preparar o banco de dados: {ex.Message}");
     Console.WriteLine("Não foi possível preparar o banco de dados.");

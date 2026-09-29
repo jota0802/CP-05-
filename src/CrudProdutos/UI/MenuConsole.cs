@@ -68,7 +68,9 @@ public class MenuConsole
         {
             operacao();
         }
-        catch (DbException ex) // SqliteException herda de DbException
+        // DbException: erro do banco (SqliteException herda dela).
+        // FormatException/InvalidOperationException: dado gravado fora do formato esperado na leitura.
+        catch (Exception ex) when (ex is DbException or FormatException or InvalidOperationException)
         {
             _log.Registrar("ERRO", $"Falha ao {descricao}: {ex.Message}");
             Console.WriteLine();
